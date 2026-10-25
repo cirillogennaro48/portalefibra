@@ -1,47 +1,60 @@
 import express from 'express';
 const app = express();
 app.use(express.json());
-process.env.NODE_TLS_REJECT_UNAUTHORIZED='0';
 
-const BASES=['https://ws-of.sertori.it:8443'];
+app.get('/', (req,res)=>{
+res.send(`
+<!DOCTYPE html>
+<html><head><meta charset=utf-8><meta name=viewport content="width=device-width"><title>PortaleFibra - Diretto</title>
+<style>body{font-family:Arial;padding:15px;background:#f0f2f5}input{width:95%;padding:12px;margin:5px 0;font-size:16px}button{width:100%;padding:14px;background:#0066cc;color:white;border:0;border-radius:8px;font-size:18px;margin-top:10px}#log{background:black;color:#0f0;padding:10px;height:300px;overflow:auto;white-space:pre-wrap;margin-top:15px;font-size:12px}</style>
+</head><body>
+<h2>PortaleFibra - Collegamento DIRETTO</h2>
+<p>Questo si collega dal TUO telefono, non da Render, quindi Sertori non lo blocca.</p>
+<input id=u value=scalamia placeholder=utente>
+<input id=p type=password placeholder=password>
+<button onclick="test()">PROVA COLLEGAMENTO DIRETTO</button>
+<div id=log>Log qui...</div>
+<script>
 const PATHS=[
+'/xmeweb-api/api/Auth/Login',
+'/xmeweb-api/api/auth/login',
+'/xmeweb-api/Auth/Login',
 '/xmeweb-login/api/Auth/Login',
 '/xmeweb-login/api/auth/login',
-'/xmeweb-login-api/api/Auth/Login',
-'/effe-api/api/auth/login',
-'/effepi-api/api/Auth/Login',
-'/effepi-web-api/api/Auth/Login',
-'/fp-api/api/Auth/Login',
-'/xmeweb-login/api/Account/Login',
+'/xmeweb/api/Auth/Login',
 '/api/Auth/Login',
-'/xmeweb-login-api/Auth/Login',
-'/effe-api/Auth/Login'
+'/xmeweb-api/api/Account/Login',
+'/xmeweb-api/api/User/Login',
+'/effe-api/api/Auth/Login'
 ];
-
-async function doLogin(u,p){
- for(let b of BASES){
-  for(let path of PATHS){
-   let url=b+path;
-   try{
-    console.log("PROVO:",url);
-    let r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u,password:p})});
-    let txt=await r.text();
-    console.log(`-> STATUS ${r.status} : ${txt.substring(0,400)}`);
-    if(r.ok && (txt.includes('token')||txt.includes('Token')||txt.includes('access')) && !txt.includes('<!doctype')){
-     console.log(">>> TROVATO!!! <<<",url);
-     return url+" ||| "+txt.substring(0,500);
-    }
-   }catch(e){console.log("ERR",url,e.message)}
+async function test(){
+ let u=document.getElementById('u').value;
+ let p=document.getElementById('p').value;
+ let log=document.getElementById('log');
+ log.textContent='Inizio test da tuo telefono...\\n';
+ let base='https://ws-of.sertori.it:8443';
+ for(let path of PATHS){
+  let url=base+path;
+  log.textContent+='\\nPROVO: '+url+'\\n';
+  try{
+   let r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u,password:p,UserName:u,Email:u})});
+   let txt=await r.text();
+   log.textContent+='-> STATUS '+r.status+' RISPOSTA: '+txt.substring(0,500)+'\\n';
+   if(r.ok && txt.includes('token')||txt.toLowerCase().includes('bearer')||txt.includes('Token')){
+     log.textContent+='\\n>>> TROVATO!!! Questo è quello buono: '+url+' <<<\\n';
+     log.textContent+='TOKEN: '+txt.substring(0,1000)+'\\n';
+     alert('TROVATO API VERA! Copia questo log e mandamelo!');
+     return;
+   }
+  }catch(e){
+   log.textContent+='ERR: '+e.message+'\\n';
   }
  }
- return null;
+ log.textContent+='\\nFinito. Nessuno ha dato token. Mandami screenshot di questo log!';
 }
-
-app.get('/',(req,res)=>{res.send(`<h2>CERCO EFFEPI API VERA v2</h2><input id=u value=scalamia><input id=p type=password><button onclick="fetch('/api/sync',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u.value,password:p.value})}).then(r=>r.json()).then(j=>alert(JSON.stringify(j)))">Test</button><p>Guarda i LOG su Render</p>`)});
-
-app.post('/api/sync',async(req,res)=>{
- let f=await doLogin(req.body.username,req.body.password);
- if(f) res.json({ok:true,found:f});
- else res.json({ok:false,msg:"Nessuno, guarda LOG"});
+</script>
+</body></html>
+`);
 });
-app.listen(process.env.PORT||10000,()=>console.log("CERCO EFFEPI"));
+
+app.listen(process.env.PORT||10000, ()=>console.log("DIRETTO MODE"));
