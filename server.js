@@ -1,7 +1,5 @@
 import express from 'express';
-import cors from 'cors';
 const app = express();
-app.use(cors());
 app.use(express.json());
 
 let token = "";
@@ -14,7 +12,7 @@ async function doLogin(user, pass) {
       body: JSON.stringify({ username: user, password: pass })
     });
     const txt = await r.text();
-    console.log("SERTORI RISPOSTA:", r.status, txt.substring(0, 500));
+    console.log("SERTORI RISPOSTA:", r.status, txt.substring(0, 800));
     if (!r.ok) return false;
     try {
       const j = JSON.parse(txt);
@@ -25,7 +23,7 @@ async function doLogin(user, pass) {
     }
     return !!token;
   } catch (e) {
-    console.log("ERRORE:", e.message);
+    console.log("ERRORE LOGIN:", e.message);
     return false;
   }
 }
@@ -59,11 +57,20 @@ app.get('/', (req, res) => {
 app.post('/api/sync', async (req, res) => {
   const ok = await doLogin(req.body.username, req.body.password);
   if (ok) res.json({ ok: true, msg: "Collegato! Token ok" });
-  else res.status(401).json({ ok: false, msg: "Login fallito, controlla user/pass - guarda i LOG su Render" });
+  else res.status(401).json({ ok: false, msg: "Login fallito - guarda LOG su Render per SERTORI RISPOSTA" });
 });
 
 app.get('/api/pratiche', async (req, res) => {
-  res.json({ token: token ? "presente" : "vuoto", note: "test" });
+  try {
+    if(!token) return res.json({msg:"Fai prima login"});
+    const r = await fetch('https://ws-of.sertori.it:8443/xmeweb-api/api/Wfm/Full?skip=0&take=50', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json', 'Authorization':'Bearer '+token },
+      body: JSON.stringify({ filterRequest: "" })
+    });
+    const txt = await r.text();
+    res.status(r.status).send(txt);
+  } catch(e){ res.status(500).json({error:e.message}) }
 });
 
-app.listen(process.env.PORT || 10000, () => console.log("Online"));
+app.listen(process.env.PORT || 10000, () => console.log("Online SENZA CORS - OK"));
