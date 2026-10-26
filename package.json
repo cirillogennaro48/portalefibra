@@ -1,7 +1,4 @@
 {
-  "name": "portalefibra",
-  "type": "module",
-  "dependencies": {
-    "express": "^4.18.2"
-  }
+  "name": "portale-fibra",
+  "dependencies": { "express": "^4.18.2" }
 }
