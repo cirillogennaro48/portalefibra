@@ -1,4 +1,0 @@
-{
-  "name": "portale-fibra",
-  "dependencies": { "express": "^4.18.2" }
-}
